@@ -12,11 +12,13 @@ This vignette reproduces some replications from the simulation study presented i
 
 ## Getting started
 
-In this short vignette we used the following Python packages
+In this short vignette we use the following Python packages
 
-```
-import numpy as np
-
+``` Python
+numpy
+scipy
+time
+sklearn
 ```
 
 ##  COMBSS in a low dimensional data context
