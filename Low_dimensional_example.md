@@ -12,8 +12,8 @@ from sklearn import metrics
 Load function useful for COMBSS
 -------------------------------
 
-``` r
-source("combss-functions-github.py")
+``` python
+import combss-functions-github *
 ```
 
 Generate data from a true model
