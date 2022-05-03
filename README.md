@@ -24,18 +24,18 @@ Download the file 'combss_functions_github.py' from [here](/combss_functions_git
 
 ##  COMBSS in a low-dimensional setup
 
-In this example, we cosnder a dataset with $n = 100$ samples and $p = 20$ predictors, of which $10$ are active predictors.
+In this example, we consider a dataset with $n = 100$ samples and $p = 20$ predictors, of which $10$ are active predictors.
 
 This analysis is presented [here](/Low_dimensional_example.ipynb)
 
 ##  COMBSS in a high-dimensional setup
 
-In this example, we cosnder a dataset with $n = 100$ samples and $p = 1000$ predictors, of which $10$ are active predictors.
+In this example, we consider a dataset with $n = 100$ samples and $p = 1000$ predictors, of which $10$ are active predictors.
 
 This analysis is presented [here](/High_dimensional_example.ipynb)
 
 ##  COMBSS in a ultra high-dimensional setup
 
-In this example, we cosnder a dataset with $n = 100$ samples and $p = 10,000$ predictors, of which $3$ are active predictors.
+In this example, we consider a dataset with $n = 100$ samples and $p = 10,000$ predictors, of which $3$ are active predictors.
 
 This analysis is presented [here](/Ultra_High_dimensional_example.ipynb)
