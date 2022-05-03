@@ -10,11 +10,14 @@ Created on Tue Mar  8 12:46:06 2022
 #%%
 ## Required packages
 import numpy as np
-from numpy.linalg import norm
+from numpy.linalg import inv, norm
 from scipy.sparse.linalg import cg
+from sklearn import metrics
 import sys
+import matplotlib.pyplot as plt
+from matplotlib.ticker import MaxNLocator
 
-
+#%%
 ## Function for generating the true set of model parameters. Possible beta-types are 1 and 2.
 def gen_beta0(p, k0, beta_type):
     if k0 > p:
@@ -81,7 +84,7 @@ def gen_lam_grid_exp(y, size, para):
     
     lam_max = norm(y)**2/(y.shape[0])  
     lam_grid = lam_max*np.array([para**i for i in range(size)])
-    lam_grid = np.append(lam_grid, 0.0)
+    # lam_grid = np.append(lam_grid, 0.0)
     lam_grid = np.flip(lam_grid)
     
     return lam_grid
@@ -161,9 +164,8 @@ def f_grad_cg(t, X, y, XX, Xy, Z, lam, delta, beta,  c,  g1, g2,
 
 
 ## Implementation of the ADAM optimizer for best model selection.  
-def ADAM_combss(X, y, N_opt_iter, lam, t_init,
+def ADAM_combss(X, y, lam, t_init,
         delta_frac = 1,
-        CG = True,
 
         ## Adam parameters
         xi1 = 0.9, 
@@ -173,6 +175,7 @@ def ADAM_combss(X, y, N_opt_iter, lam, t_init,
 
         
         ## Parameters for Termination
+        gd_maxiter = 1e5,
         gd_tol = 0.001,
         max_norm = True,
         epoch=10,
@@ -182,15 +185,14 @@ def ADAM_combss(X, y, N_opt_iter, lam, t_init,
         eta = 0.001, 
         
         ## Parameters for Conjugate Gradient method
-        cg_maxiter = 100,
+        cg_maxiter = None,
         cg_tol = 1e-5):
     
     """
     Proposed ADAM implimentation for the best subset selection problem. See the description in the paper.
     
     """
-
-    print("lam", lam)
+    
     (n, p) = X.shape
     
     ## One time operations
@@ -220,7 +222,7 @@ def ADAM_combss(X, y, N_opt_iter, lam, t_init,
     
     count_to_term = 0
     
-    for l in range(N_opt_iter):
+    for l in range(gd_maxiter):
         #print(l)
         #t_list.append(t.copy())
         M = np.nonzero(t)[0] ## Indices of t correponds to elements greater than eta. 
@@ -289,7 +291,7 @@ def ADAM_combss(X, y, N_opt_iter, lam, t_init,
     s = np.zeros(p)
     s[t > tau] = 1
     
-    if l+1 < N_opt_iter:
+    if l+1 < gd_maxiter:
         converge = True
     else:
         converge = False
@@ -298,9 +300,8 @@ def ADAM_combss(X, y, N_opt_iter, lam, t_init,
 
 
 ## Implementation of the Basic Gradient Descent (BGD) for best model selection.  
-def BGD_combss(X, y, N_opt_iter, lam, t_init,
+def BGD_combss(X, y, lam, t_init,
         delta_frac = 1,
-        CG = True,
         
         ## BGD parameters           
         alpha = 0.1, 
@@ -308,6 +309,7 @@ def BGD_combss(X, y, N_opt_iter, lam, t_init,
         
         ## Parameters for Termination
         gd_tol = 1e-5,
+        gd_maxiter = 1e5,
         max_norm = True,
         epoch = 10,
         
@@ -350,7 +352,7 @@ def BGD_combss(X, y, N_opt_iter, lam, t_init,
     
     count_to_term = 0
     
-    for l in range(N_opt_iter):
+    for l in range(gd_maxiter):
         
         M = np.nonzero(t)[0] ## Indices of t correponds to elements greater than eta. 
         M_trun = np.nonzero(t_trun)[0] 
@@ -409,7 +411,7 @@ def BGD_combss(X, y, N_opt_iter, lam, t_init,
     s = np.zeros(p)
     s[t > tau] = 1
     
-    if l+1 < N_opt_iter:
+    if l+1 < gd_maxiter:
         converge = True
     else:
         converge = False
@@ -418,6 +420,135 @@ def BGD_combss(X, y, N_opt_iter, lam, t_init,
 
 
 
+### combss implimentation. 
+def combss_mse(X_train, y_train, X_test, y_test, lam_grid,
+            ADAM=True,  
+            delta_frac = 1,
+            
+            ## Parameters for Termination
+            gd_maxiter = 1e5,
+            gd_tol = 1e-5,
+            max_norm = True,
+            epoch=10,
+            
+            ## Truncation parameters
+            tau = 0.5,
+            eta = 0.0, 
+            
+            ## Parameters for Conjugate Gradient method
+            cg_maxiter = None,
+            cg_tol = 1e-5):
+    
+    
+    if type(lam_grid) in (float, int):
+        lam_grid = np.array([lam_grid])
+    
+    (n, p) = X_train.shape
+    ## Lists for storing the outputs of GD for each lam
+    mse_arr = [] # to strore mean square error for each lam
+    s_list = []  # to store subset selection for each lam
+    t_list = []   # to store final t selected for each lam
+    t_init = np.ones(p)*0.5
+    
+    ## Calling COMBSS
+    for i in range(lam_grid.shape[0]):
+        lam = lam_grid[i]
+        
+        if ADAM:
+            t_final, s_final, converge, _ = ADAM_combss(X_train, y_train, t_init=t_init, tau=tau, delta_frac=delta_frac, lam=lam, eta=eta, epoch=epoch, gd_maxiter=gd_maxiter, gd_tol=gd_tol, cg_maxiter=cg_maxiter, cg_tol=cg_tol)
+        else:
+            t_final, s_final, converge, _ = BGD_combss(X_train, y_train, t_init=t_init, tau=tau, delta_frac=delta_frac, lam=lam, eta=eta, epoch=epoch, gd_maxiter=gd_maxiter, gd_tol=gd_tol, cg_maxiter=cg_maxiter, cg_tol=cg_tol)
+          
+            
+        if not converge:
+            print("Optimization is NOT CONVERGED for ", i, "-th lam")
+            
+        ## Computing the prediction error on the test data
+        ind_final = np.where(s_final > 0)[0]
+        len_s = ind_final.shape[0]
+
+        if 0 < len_s < n:
+            X_hat = X_train[:, ind_final]
+            X_hatT = X_hat.T
+            
+            X_hatTy = X_hatT@y_train
+            XX_hat = X_hatT@X_hat
+            
+
+            beta_hat = inv(XX_hat)@X_hatTy 
+            X_hat = X_test[:, ind_final]
+            mse = np.square(y_test - X_hat@beta_hat).mean()
+        elif len_s >= n: 
+            mse = 2*np.square(y_test).mean()
+        else:
+            mse = np.square(y_test).mean()
+
+        mse_arr.append(mse)
+        s_list.append(s_final)
+        t_list.append(t_final)
+
+    mse_arr = np.array(mse_arr) 
+    return t_list, s_list, mse_arr
+
+
+## Summarizes the results: a plot of lam vs mse, a plot of lam vs model size, and optimal values 
+def results(beta0, X_train, y_train, lam_grid, s_list, mse_arr):
+    if type(lam_grid) in (float, int):
+        lam_grid = np.array([lam_grid])
+        
+    ind_opt = np.argmin(mse_arr)
+    lam_opt = lam_grid[ind_opt]
+    s_opt = s_list[ind_opt]
+    len_opt = int(sum(s_opt))
+    len_arr = np.array([int(sum(s)) for s in s_list])
+    mse_opt = mse_arr[ind_opt]
+    
+    print("Optimal lam:", lam_opt)
+    print("Optimal model:", np.where(s_opt > 0)[0], "(size: %s)" %len_opt)
+    print("Optimal MSE:", mse_opt)
+    
+    # Plotting mse and model sizes
+    plt.rcParams["figure.figsize"] = (8,10)
+    fig, ax = plt.subplots(2, 1)
+    
+    ax[0].plot(np.log(lam_grid), mse_arr, '-or')
+    ax[0].set_xlabel(r'$\lambda$', fontsize=20)
+    ax[0].set_ylabel('MSE (validation set)', fontsize=20)
+    ax[0].plot([np.log(lam_opt), np.log(lam_opt)], [0, np.max(mse_arr)], '--b')
+    ax[0].set_ylim([0, np.max(mse_arr)+2])
+    ax[0].tick_params(axis='x', labelsize=16)
+    ax[0].tick_params(axis='y', labelsize=16)
+    
+    ax[1].plot(np.log(lam_grid), len_arr, '-ob')
+    ax[1].set_xlabel(r'$\lambda$', fontsize=20)
+    ax[1].set_ylabel('Selected model size', fontsize=20)
+    ax[1].plot([np.log(lam_opt), np.log(lam_opt)], [0, np.max(len_arr)], '--b')
+    ax[1].set_ylim([0, np.max(len_arr)+2])
+    ax[1].yaxis.set_major_locator(MaxNLocator(integer=True))
+    ax[1].tick_params(axis='x', labelsize=16)
+    ax[1].tick_params(axis='y', labelsize=16)
+    
+    # Confusion matrix
+    p = X_train.shape[0]
+    model_opt = np.where(s_opt > 0)[0]
+
+    if  len_opt == 0:
+        beta_pred = np.zeros(p)
+    else:
+        X_hat = X_train[:, model_opt]
+        X_hatT = X_hat.T
+        X_hatTy = X_hatT@y_train
+        XX_hat = X_hatT@X_hat
+        
+        beta_hat = inv(XX_hat)@X_hatTy
+        beta_pred = np.zeros(p)
+        beta_pred[model_opt] = beta_hat
+        
+    # Confusion matrix
+    cm = metrics.confusion_matrix(beta0, s_opt)
+    cmd = metrics.ConfusionMatrixDisplay(cm, display_labels=[r'$\beta = 0$',r'$\beta \neq 0$'])
+    cmd.plot()
+    return 
 
 
 

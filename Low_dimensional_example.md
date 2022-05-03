@@ -1,25 +1,30 @@
-Python packages
----------
+# Load Python Packages
 
-``` Python
+Load the required packages as follows
+
+
+```python
 import numpy as np
 from numpy.linalg import inv, norm
 from scipy.sparse.linalg import cg
-import time
 from sklearn import metrics
 ```
 
-Load function useful for COMBSS
--------------------------------
+# Load functions useful for COMBSS
 
-``` python
-from combss-functions-github import *
+First make sure that the file 'combss_functions_github.py' is stored the working directory. Then load the all the COMBSS related functions by running the following command.
+
+
+```python
+from combss_functions_github import *
 ```
 
-Generate data from a true model
--------------------------------
+# Generate data from a true model
 
-``` python
+Generate a low-dimensional dataset as follows.
+
+
+```python
 n = 100
 p = 20
 beta_type = 1
@@ -33,94 +38,83 @@ meanX = np.zeros(p)
 covX = cov_X(p, rho)
 noise_var = beta0.T@covX@beta0/snr
 
-set.seed(140)
+np.random.seed(123)
 
-data_train = gen_Data(n, p, meanX, covX, noise_var, beta0)
-X_train = data[0]
-y_train = data[0]
+data_train = gen_data(n, p, meanX, covX, noise_var, beta0)
+X_train = data_train[0]
+y_train = data_train[1]
 ```
 
-### Generation of a validation set
+# Generate a validation set
 
-``` python
+For tuning the penalty parameter $\lambda$, we generate a validation set as follows. 
+
+
+```python
 n_test = 5000
 
-data_test = gen_Data(n_test, p, meanX, covX, noise_var, beta0)
+data_test = gen_data(n_test, p, meanX, covX, noise_var, beta0)
 X_test = data_test[0]
-y_test = data_test[0]
+y_test = data_test[1]
 ```
 
-Parameters for COMBSS
---------------------
+# Define parameters for COMBSS
 
-``` r
-CG <- TRUE
-alpha <- 0.1
-Niter <- 1000
-epoch <- 10
-tol <- 0.001
-tau=0.5
-epoch <- 10
-trunc <- 0.001
+Now define the parameters of COMBSS algorithm. Recall 
+- $\alpha$ is the learning rate of the gradient descent (GD) method;
+- $\tau$ is the paramter used to map the final $\mathbf t$ vector to a binary vector $\mathbf s$;
+- $\eta$ is the parameter used for speed improvement using truncation approach; 
+
+
+```python
+alpha = 0.1           
+tau = 0.5
+eta = 0.001
+
+# Parameters for termination of the gradient descent
+gd_tol = 0.001           # gd_tol is the tolerance of the GD method for termination.
+
+epoch = 10               # GD terminates if the Term_cond is satisfied over epoch number of consecutive iterations.
+
+gd_maxiter = 1000         # max number of iterations allowed by the GD method. 
+                         # This is not crucial as the algorithm terminates 
+                         # with smaller number ietartions
 ```
 
-Grid of lambda values
----------------------
+# Generate a grid of $\lambda$ values
 
-``` r
-lambda.max <- sum(y*y)/n
-c.grid <- 0.8
-nlambda <- 50
-grid.comb <- rev(lambda.max*(c.grid^(c(0:(nlambda-1)))))
+Following command generates a grid of $\lambda$ values as described in the paper.
+
+
+```python
+lam_grid = gen_lam_grid_exp(y_train, 50, 0.8)
 ```
 
-Compuation of the MSE on the validation set
--------------------------------------------
 
-``` r
-mse <- rep(0,nlambda)
-nsel <- rep(0,nlambda)
-for(j in 1:nlambda){
-#print(j)
-lam <- as.numeric(grid.comb[j])
-model.combssR <- ADAM.COMBSS(X,y,delta=dim(X)[1],lambda=lam,tau=tau,Niter=Niter,alpha=alpha,epoch=epoch,tol=tol,CG=CG,trunc=trunc)
-nsel[j] <- sum(model.combssR$s)
-y.pred <- as.vector(predict.COMBSS(model.combssR,Xtest))
-
-if(sum(model.combssR$s)>n){mse[j]<- 9999}else{
-  mse[j] <- mean((ytest-y.pred)**2)}
-}
+```python
+#%%
+ADAM = True
+cg_tol = 0.001
+cg_maxiter = n
 ```
 
-Choice of lambda based on the MSE from the validation set
----------------------------------------------------------
 
-``` r
-lambda.min <- grid.comb[which.min(mse)]
-plot(mse~log(grid.comb),type="o",col="red",pch=20,xlab=expression(log(lambda)),ylab="MSE (validation set)")
-axis(side=3,at=log(grid.comb),labels=paste(nsel),tick=FALSE,line=0)
-abline(v=log(lambda.min),lty=3)
+```python
+t_list, s_list, mse_arr = combss_mse(X_train, y_train, X_test, y_test, lam_grid, ADAM=ADAM, tau=tau, eta=eta, epoch=epoch, gd_maxiter=gd_maxiter, gd_tol=gd_tol, cg_maxiter=cg_maxiter, cg_tol=cg_tol )
+
 ```
 
-![](Low_dimensional_example_files/figure-markdown_github/unnamed-chunk-87-1.png)
 
-Run COMBSS with best lambda
----------------------------
-
-``` r
-model.combssF <- ADAM.COMBSS(X,y,delta=dim(X)[1],lambda=lambda.min,tau=tau,Niter=Niter,alpha=alpha,epoch=epoch,tol=tol,CG=CG,trunc=trunc)
+```python
+results(beta0, X_train, y_train, lam_grid, s_list, mse_arr)
 ```
 
-Confusion matrix
-----------------
+    Optimal lam: 0.10658755302227893
+    Optimal model: [ 0  2  4  6  8 10 12 14 16 18] (size: 10)
+    Optimal MSE: 7.233167979982565
 
-``` r
-Selected <- model.combssF$s
-True <- as.logical(beta)
-table(True,Selected)
+
+
+```python
+
 ```
-
-    ##        Selected
-    ## True    FALSE TRUE
-    ##   FALSE    10    0
-    ##   TRUE      0   10
