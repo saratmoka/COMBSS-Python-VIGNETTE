@@ -1,4 +1,4 @@
-Python package
+Python packages
 ---------
 
 ``` Python
