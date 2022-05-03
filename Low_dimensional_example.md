@@ -24,7 +24,7 @@ n = 100
 p = 20
 beta_type = 1
 K0 = 10
-beta0, model_true = gen_beta0(p, K0, beta_type)
+beta0, model0 = gen_beta0(p, K0, beta_type)
 
 snr = 6              
 rho = 0.5 
