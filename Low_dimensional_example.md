@@ -34,6 +34,7 @@ covX = cov_X(p, rho)
 noise_var = beta0.T@covX@beta0/snr
 
 set.seed(140)
+
 data_train = gen_Data(n, p, meanX, covX, noise_var, beta0)
 X_train = data[0]
 y_train = data[0]
@@ -43,12 +44,13 @@ y_train = data[0]
 
 ``` python
 n_test = 5000
+
 data_test = gen_Data(n_test, p, meanX, covX, noise_var, beta0)
 X_test = data_test[0]
 y_test = data_test[0]
 ```
 
-Parameter for COMBSS
+Parameters for COMBSS
 --------------------
 
 ``` r
