@@ -16,6 +16,10 @@ In this short vignette we use the following Python packages:
 - scipy
 - sklearn
 
+## Download the COMBSS python code
+
+Download the file 'combss_functions_github.py' from [here](/combss_functions_github.py) to your working directory. 
+
 ##  COMBSS in a low-dimensional setup
 
 In this example, we cosnder a dataset with $n = 100$ samples and $p = 20$ predictors, of which $10$ are active predictors.
