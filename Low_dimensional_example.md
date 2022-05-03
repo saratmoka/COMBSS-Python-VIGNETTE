@@ -41,7 +41,7 @@ y_train = data[0]
 
 ### Generation of a validation set
 
-``` r
+``` python
 n_test = 5000
 data_test = gen_Data(n_test, p, meanX, covX, noise_var, beta0)
 X_test = data_test[0]
