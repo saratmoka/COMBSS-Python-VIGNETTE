@@ -13,36 +13,39 @@ Load function useful for COMBSS
 -------------------------------
 
 ``` python
-import combss-functions-github *
+from combss-functions-github import *
 ```
 
 Generate data from a true model
 -------------------------------
 
-``` r
-n <- 100
-p<- 20
-index.true <- seq(1,p,by=2)
-K0 <- 10
-beta <- rep(0,p)
-beta[index.true] <- 1
-True.set <- beta !=0
-SNR <- 6
-rho <- 0.5
-matcovX <- cov.X(p,rho)
-sigma.2 <- noise.compute.from.SNR(SNR,beta,matcovX)
-noise_var <- as.numeric(sigma.2)
+``` python
+n = 100
+p = 20
+beta_type = 1
+K0 = 10
+beta0, model_true = gen_beta0(p, K0, beta_type)
+
+snr = 6              
+rho = 0.5 
+
+meanX = np.zeros(p)
+covX = cov_X(p, rho)
+noise_var = beta0.T@covX@beta0/snr
+
 set.seed(140)
-X <- rmvnorm(n,mean=rep(0,p),sigma=matcovX)
-y <- X%*%matrix(beta,ncol=1)+rnorm(n,sd=sqrt(sigma.2))
+data_train = gen_Data(n, p, meanX, covX, noise_var, beta0)
+X_train = data[0]
+y_train = data[0]
 ```
 
 ### Generation of a validation set
 
 ``` r
-Ntest <- 5000
-Xtest <- rmvnorm(Ntest,mean=rep(0,p),sigma=matcovX)
-ytest <- Xtest%*%matrix(beta,ncol=1)+rnorm(n,sd=sqrt(sigma.2))
+n_test = 5000
+data_test = gen_Data(n_test, p, meanX, covX, noise_var, beta0)
+X_test = data_test[0]
+y_test = data_test[0]
 ```
 
 Parameter for COMBSS
