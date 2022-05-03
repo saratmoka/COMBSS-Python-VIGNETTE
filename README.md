@@ -15,6 +15,8 @@ In this short vignette we use the following Python packages:
 - numpy
 - scipy
 - sklearn
+- sys
+- matplotlib
 
 ## Download the COMBSS python code
 
