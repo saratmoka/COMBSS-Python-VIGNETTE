@@ -13,7 +13,7 @@ Load function useful for COMBSS
 -------------------------------
 
 ``` r
-source("Function-for-combss-github.R")
+source("combss-functions-github.py")
 ```
 
 Generate data from a true model
