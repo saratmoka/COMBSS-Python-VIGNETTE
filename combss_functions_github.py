@@ -420,7 +420,7 @@ def BGD_combss(X, y, lam, t_init,
 
 
 
-### combss implimentation. 
+### combss implementation. 
 def combss_mse(X_train, y_train, X_test, y_test, lam_grid,
             ADAM=True,  
             delta_frac = 1,
@@ -437,13 +437,18 @@ def combss_mse(X_train, y_train, X_test, y_test, lam_grid,
             
             ## Parameters for Conjugate Gradient method
             cg_maxiter = None,
-            cg_tol = 1e-5):
+            cg_tol = 0.001):
     
     
     if type(lam_grid) in (float, int):
         lam_grid = np.array([lam_grid])
     
     (n, p) = X_train.shape
+    
+    if cg_maxiter == None:
+        cg_maxiter = n
+    
+    
     ## Lists for storing the outputs of GD for each lam
     mse_arr = [] # to strore mean square error for each lam
     s_list = []  # to store subset selection for each lam
