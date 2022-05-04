@@ -531,7 +531,6 @@ def results(beta0, X_train, y_train, lam_grid, model_list, mse_arr):
     # Confusion matrix
     p = X_train.shape[1]
     beta_pred = np.zeros(p)
-    print('Optimal Model', model_opt)
     if  len_opt > 0:
         X_hat = X_train[:, model_opt]
         X_hatT = X_hat.T
