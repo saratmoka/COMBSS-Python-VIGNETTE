@@ -38,4 +38,4 @@ This analysis is presented [here](/High_dimensional_example.ipynb)
 
 In this example, we consider a dataset with $n = 100$ samples and $p = 10,000$ predictors, of which $3$ are active predictors.
 
-This analysis is presented [here](/Ultra_High_dimensional_example.ipynb)
+This analysis is presented [here](/Ultra_high_dimensional_example.ipynb)
