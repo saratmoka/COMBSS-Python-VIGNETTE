@@ -164,8 +164,9 @@ def f_grad_cg(t, X, y, XX, Xy, Z, lam, delta, beta,  c,  g1, g2,
 
 
 ## Implementation of the ADAM optimizer for best model selection.  
-def ADAM_combss(X, y, lam, t_init,
+def ADAM_combss(X, y,  lam, t_init,
         delta_frac = 1,
+        CG = True,
 
         ## Adam parameters
         xi1 = 0.9, 
@@ -176,13 +177,13 @@ def ADAM_combss(X, y, lam, t_init,
         
         ## Parameters for Termination
         gd_maxiter = 1e5,
-        gd_tol = 0.001,
+        gd_tol = 1e-5,
         max_norm = True,
         epoch=10,
         
         ## Truncation parameters
         tau = 0.5,
-        eta = 0.001, 
+        eta = 0.0, 
         
         ## Parameters for Conjugate Gradient method
         cg_maxiter = None,
@@ -192,7 +193,8 @@ def ADAM_combss(X, y, lam, t_init,
     Proposed ADAM implimentation for the best subset selection problem. See the description in the paper.
     
     """
-    
+
+
     (n, p) = X.shape
     
     ## One time operations
@@ -220,11 +222,13 @@ def ADAM_combss(X, y, lam, t_init,
     g1 = np.zeros(n)
     g2 = np.zeros(n)
     
+    
     count_to_term = 0
     
+    
     for l in range(gd_maxiter):
-        #print(l)
-        #t_list.append(t.copy())
+        
+    
         M = np.nonzero(t)[0] ## Indices of t correponds to elements greater than eta. 
         M_trun = np.nonzero(t_trun)[0] 
         active_new = M_trun.shape[0]
@@ -239,7 +243,7 @@ def ADAM_combss(X, y, lam, t_init,
             t_trun = t_trun[M_trun]
         
         ## Compute gradient for the effective terms
-        grad_trun, beta_trun, c, g1, g2 = f_grad_cg(t_trun, X, y, XX, Xy, Z, lam, delta, beta_trun[M_trun],  c[M_trun], g1, g2, cg_maxiter=cg_maxiter, cg_tol=cg_tol)
+        grad_trun, beta_trun, c, g1, g2 = f_grad_cg(t_trun, X, y, XX, Xy, Z, lam, delta, beta_trun[M_trun],  c[M_trun], g1, g2)
         w_trun = w[M]
         grad_trun = 2*grad_trun*(w_trun*np.exp(- w_trun*w_trun))
         
@@ -257,7 +261,7 @@ def ADAM_combss(X, y, lam, t_init,
         w[t <= eta] = 0.0
         t[t <= eta] = 0.0
 
-        
+     
         
         beta = np.zeros(p)
         beta[M] = beta_trun
@@ -286,18 +290,14 @@ def ADAM_combss(X, y, lam, t_init,
             else:
                 count_to_term = 0
         t_prev = t.copy()
-        
-    # Create the final binary vector s    
-    s = np.zeros(p)
-    s[t > tau] = 1
     
+    model = np.where(t > tau)[0]
+
     if l+1 < gd_maxiter:
         converge = True
     else:
         converge = False
-        
-    return  t, s, converge, l+1
-
+    return  t, model, converge, l+1
 
 ## Implementation of the Basic Gradient Descent (BGD) for best model selection.  
 def BGD_combss(X, y, lam, t_init,
@@ -386,8 +386,8 @@ def BGD_combss(X, y, lam, t_init,
         
 
         if max_norm:
-            norm_t = max(np.abs(t - t_prev))
-            if norm_t <= gd_tol:
+            norm_temp = max(np.abs(t - t_prev))
+            if norm_temp <= gd_tol:
                 count_to_term += 1
                 if count_to_term >= epoch:
                     break
@@ -407,16 +407,14 @@ def BGD_combss(X, y, lam, t_init,
                 count_to_term = 0
         t_prev = t.copy()
     
-    # Create the final binary vector s    
-    s = np.zeros(p)
-    s[t > tau] = 1
     
+    model = np.where(t > tau)[0]
+
     if l+1 < gd_maxiter:
         converge = True
     else:
         converge = False
-    
-    return  t, s, converge, l+1 
+    return  t, model, converge, l+1
 
 
 
@@ -451,29 +449,26 @@ def combss_mse(X_train, y_train, X_test, y_test, lam_grid,
     
     ## Lists for storing the outputs of GD for each lam
     mse_arr = [] # to strore mean square error for each lam
-    s_list = []  # to store subset selection for each lam
+    model_list = []  # to store subset selection for each lam
     t_list = []   # to store final t selected for each lam
     t_init = np.ones(p)*0.5
     
     ## Calling COMBSS
     for i in range(lam_grid.shape[0]):
         lam = lam_grid[i]
-        
+
         if ADAM:
-            t_final, s_final, converge, _ = ADAM_combss(X_train, y_train, t_init=t_init, tau=tau, delta_frac=delta_frac, lam=lam, eta=eta, epoch=epoch, gd_maxiter=gd_maxiter, gd_tol=gd_tol, cg_maxiter=cg_maxiter, cg_tol=cg_tol)
+            #t_final, s_final, converge, _ = ADAM_combss(X_train, y_train, t_init=t_init, tau=tau, delta_frac=delta_frac, lam=lam, eta=eta, epoch=epoch, gd_maxiter=gd_maxiter, gd_tol=gd_tol, cg_maxiter=cg_maxiter, cg_tol=cg_tol)
+            t_final, model_final, converge, _ = ADAM_combss(X_train, y_train, lam, t_init, tau=tau, delta_frac=delta_frac, eta=eta, epoch=epoch, gd_maxiter=gd_maxiter,gd_tol=gd_tol, cg_maxiter=cg_maxiter, cg_tol=cg_tol)
         else:
-            t_final, s_final, converge, _ = BGD_combss(X_train, y_train, t_init=t_init, tau=tau, delta_frac=delta_frac, lam=lam, eta=eta, epoch=epoch, gd_maxiter=gd_maxiter, gd_tol=gd_tol, cg_maxiter=cg_maxiter, cg_tol=cg_tol)
-          
-            
-        if not converge:
-            print("Optimization is NOT CONVERGED for ", i, "-th lam")
+            t_final, model_final, converge, _ = BGD_combss(X_train, y_train, lam, t_init=t_init, tau=tau, delta_frac=delta_frac, eta=eta, epoch=epoch, gd_maxiter=gd_maxiter, gd_tol=gd_tol, cg_maxiter=cg_maxiter, cg_tol=cg_tol)
+
             
         ## Computing the prediction error on the test data
-        ind_final = np.where(s_final > 0)[0]
-        len_s = ind_final.shape[0]
+        len_s = model_final.shape[0]
 
         if 0 < len_s < n:
-            X_hat = X_train[:, ind_final]
+            X_hat = X_train[:, model_final]
             X_hatT = X_hat.T
             
             X_hatTy = X_hatT@y_train
@@ -481,7 +476,7 @@ def combss_mse(X_train, y_train, X_test, y_test, lam_grid,
             
 
             beta_hat = inv(XX_hat)@X_hatTy 
-            X_hat = X_test[:, ind_final]
+            X_hat = X_test[:, model_final]
             mse = np.square(y_test - X_hat@beta_hat).mean()
         elif len_s >= n: 
             mse = 2*np.square(y_test).mean()
@@ -489,27 +484,27 @@ def combss_mse(X_train, y_train, X_test, y_test, lam_grid,
             mse = np.square(y_test).mean()
 
         mse_arr.append(mse)
-        s_list.append(s_final)
+        model_list.append(model_final)
         t_list.append(t_final)
 
     mse_arr = np.array(mse_arr) 
-    return t_list, s_list, mse_arr
+    return t_list, model_list, mse_arr
 
 
 ## Summarizes the results: a plot of lam vs mse, a plot of lam vs model size, and optimal values 
-def results(beta0, X_train, y_train, lam_grid, s_list, mse_arr):
+def results(beta0, X_train, y_train, lam_grid, model_list, mse_arr):
     if type(lam_grid) in (float, int):
         lam_grid = np.array([lam_grid])
         
     ind_opt = np.argmin(mse_arr)
     lam_opt = lam_grid[ind_opt]
-    s_opt = s_list[ind_opt]
-    len_opt = int(sum(s_opt))
-    len_arr = np.array([int(sum(s)) for s in s_list])
+    model_opt = model_list[ind_opt]
+    len_opt = model_list[ind_opt].shape[0]
+    len_arr = np.array([model.shape[0] for model in model_list])
     mse_opt = mse_arr[ind_opt]
     
     print("Optimal lam:", lam_opt)
-    print("Optimal model:", np.where(s_opt > 0)[0], "(size: %s)" %len_opt)
+    print("Optimal model:", model_opt, "(size: %s)" %len_opt)
     print("Optimal MSE:", mse_opt)
     
     # Plotting mse and model sizes
@@ -520,7 +515,7 @@ def results(beta0, X_train, y_train, lam_grid, s_list, mse_arr):
     ax[0].set_xlabel(r'$\lambda$', fontsize=20)
     ax[0].set_ylabel('MSE (validation set)', fontsize=20)
     ax[0].plot([np.log(lam_opt), np.log(lam_opt)], [0, np.max(mse_arr)], '--b')
-    ax[0].set_ylim([0, np.max(mse_arr)+2])
+    ax[0].set_ylim([np.min(mse_arr)-1, np.max(mse_arr)+2])
     ax[0].tick_params(axis='x', labelsize=16)
     ax[0].tick_params(axis='y', labelsize=16)
     
@@ -534,12 +529,10 @@ def results(beta0, X_train, y_train, lam_grid, s_list, mse_arr):
     ax[1].tick_params(axis='y', labelsize=16)
     
     # Confusion matrix
-    p = X_train.shape[0]
-    model_opt = np.where(s_opt > 0)[0]
-
-    if  len_opt == 0:
-        beta_pred = np.zeros(p)
-    else:
+    p = X_train.shape[1]
+    beta_pred = np.zeros(p)
+    print('Optimal Model', model_opt)
+    if  len_opt > 0:
         X_hat = X_train[:, model_opt]
         X_hatT = X_hat.T
         X_hatTy = X_hatT@y_train
@@ -550,6 +543,8 @@ def results(beta0, X_train, y_train, lam_grid, s_list, mse_arr):
         beta_pred[model_opt] = beta_hat
         
     # Confusion matrix
+    s_opt = np.zeros(p)
+    s_opt[model_opt] = 1
     cm = metrics.confusion_matrix(beta0, s_opt)
     cmd = metrics.ConfusionMatrixDisplay(cm, display_labels=[r'$\beta = 0$',r'$\beta \neq 0$'])
     cmd.plot()
