@@ -546,7 +546,9 @@ def results(beta0, X_train, y_train, lam_grid, model_list, mse_arr):
     # Confusion matrix
     s_opt = np.zeros(p)
     s_opt[model_opt] = 1
-    cm = metrics.confusion_matrix(beta0, s_opt)
+    s_true = np.zeros(p)
+    s_true[beta0 != 0] = 1
+    cm = metrics.confusion_matrix(s_true, s_opt)
     cmd = metrics.ConfusionMatrixDisplay(cm, display_labels=[r'$\beta = 0$',r'$\beta \neq 0$'])
     cmd.plot()
     return 
