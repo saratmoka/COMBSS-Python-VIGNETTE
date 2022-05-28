@@ -1,3 +1,6 @@
+# Correction
+ If you have download the code before 28 May 2022, please download the current version. We made some updates to COMBSS functions.
+
 # COMBSS-VIGNETTE
 
 Here we provide a first vignette to run COMBSS, a novel algorithm for best subset selection for a linear regression model, using Python. For a vignette that runs COMBSS in R, we refer to https://github.com/benoit-liquet/COMBSS-R-VIGNETTE.
