@@ -63,7 +63,7 @@ def gen_data(n, p, mean, cov, noise_var, beta0, centralize=False):
             sys.tracebacklimit = 1
             raise ValueError()
             
-    y = [np.random.normal(X[i]@beta0, noise_var) for i in range(n)]
+    y = [np.random.normal(X[i]@beta0, np.sqrt(noise_var)) for i in range(n)]
     y = np.array(y)
     return [X, y]
 
