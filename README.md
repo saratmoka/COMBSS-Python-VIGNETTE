@@ -1,4 +1,4 @@
-# Correction
+# Note
  If you have download the code before 28 May 2022, please download the current version. We made some updates to COMBSS functions.
 
 # COMBSS-VIGNETTE
